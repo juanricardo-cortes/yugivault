@@ -37,7 +37,17 @@ export default function FolderList({
 
     setCreating(true);
     const supabase = createClient();
-    await supabase.from("folders").insert({ name: newName.trim() });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setCreating(false);
+      return;
+    }
+    const { error } = await supabase.from("folders").insert({ name: newName.trim(), user_id: user.id });
+    if (error) {
+      console.error("Failed to create folder:", error);
+      setCreating(false);
+      return;
+    }
     setNewName("");
     setShowCreate(false);
     setCreating(false);
