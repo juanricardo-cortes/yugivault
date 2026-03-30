@@ -40,6 +40,34 @@ export default function Dashboard() {
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [addToFolderId, setAddToFolderId] = useState<string | null>(null);
   const [showFolderPicker, setShowFolderPicker] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshMsg, setLastRefreshMsg] = useState("");
+
+  const refreshPrices = useCallback(async () => {
+    setRefreshing(true);
+    setLastRefreshMsg("");
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch("/api/cards/refresh", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLastRefreshMsg(`Updated ${data.updated} card${data.updated !== 1 ? "s" : ""}`);
+        loadCards();
+        loadFolders();
+      }
+    } catch {
+      setLastRefreshMsg("Refresh failed");
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -126,6 +154,25 @@ export default function Dashboard() {
   useEffect(() => {
     loadCards();
   }, [loadCards]);
+
+  // Auto-refresh prices every 12 hours
+  useEffect(() => {
+    if (cards.length === 0) return;
+
+    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+    const oldestUpdate = cards.reduce((oldest, card) => {
+      if (!card.last_price_update) return 0;
+      const time = new Date(card.last_price_update).getTime();
+      return oldest === 0 ? time : Math.min(oldest, time);
+    }, 0);
+
+    const needsRefresh =
+      oldestUpdate === 0 || Date.now() - oldestUpdate > TWELVE_HOURS;
+
+    if (needsRefresh && !refreshing) {
+      refreshPrices();
+    }
+  }, [cards.length]);
 
   const handleAddCard = async (card: YuyuteiCard) => {
     const { data, error } = await supabase
@@ -301,12 +348,42 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-            <button
-              onClick={() => setShowSearch(!showSearch)}
-              className="rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-purple-500 active:scale-[0.98] transition-all w-full sm:w-auto"
-            >
-              {showSearch ? "Close Search" : "+ Add Card"}
-            </button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                onClick={refreshPrices}
+                disabled={refreshing}
+                className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:border-white/20 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
+                title="Refresh all prices from Yuyutei"
+              >
+                <svg
+                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                <span className="hidden sm:inline">
+                  {refreshing ? "Refreshing..." : "Refresh Prices"}
+                </span>
+              </button>
+              <button
+                onClick={() => setShowSearch(!showSearch)}
+                className="rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-purple-500 active:scale-[0.98] transition-all flex-1 sm:flex-none"
+              >
+                {showSearch ? "Close Search" : "+ Add Card"}
+              </button>
+            </div>
+            {lastRefreshMsg && (
+              <p className="text-xs text-green-400 w-full sm:w-auto text-right">
+                {lastRefreshMsg}
+              </p>
+            )}
           </div>
 
           {/* Search Panel */}
