@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { cropCardBottom, extractSetNumber, terminateWorker } from "@/lib/ocr";
+import { cropCardBottom, extractSetNumber, terminateWorker, preloadWorker } from "@/lib/ocr";
 import type { OcrResult } from "@/lib/ocr";
 
 interface CardScannerProps {
@@ -18,6 +18,7 @@ export default function CardScanner({ onSetNumberFound }: CardScannerProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    preloadWorker();
     return () => terminateWorker();
   }, []);
 

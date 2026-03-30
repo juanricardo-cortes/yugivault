@@ -1,19 +1,29 @@
 import type { Worker } from "tesseract.js";
 
 let worker: Worker | null = null;
+let workerPromise: Promise<Worker> | null = null;
 
-async function getWorker(): Promise<Worker> {
-  if (!worker) {
-    const { createWorker } = await import("tesseract.js");
-    worker = await createWorker("eng");
+function getWorker(): Promise<Worker> {
+  if (worker) return Promise.resolve(worker);
+  if (!workerPromise) {
+    workerPromise = import("tesseract.js").then(async ({ createWorker }) => {
+      worker = await createWorker("eng");
+      return worker;
+    });
   }
-  return worker;
+  return workerPromise;
+}
+
+// Call early to start downloading WASM + language data in background
+export function preloadWorker() {
+  getWorker();
 }
 
 export function terminateWorker() {
   if (worker) {
     worker.terminate();
     worker = null;
+    workerPromise = null;
   }
 }
 
