@@ -174,21 +174,27 @@ export default function Dashboard() {
     }
   }, [cards.length]);
 
-  const handleAddCard = async (card: YuyuteiCard) => {
+  const handleAddCard = async (card: YuyuteiCard, quantity: number = 1) => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
+
     const { data, error } = await supabase
       .from("cards")
       .insert({
+        user_id: currentUser.id,
         set_number: card.setNumber,
         card_name: card.cardName,
         rarity: card.rarity,
         price: card.price,
         image_url: card.imageUrl,
+        quantity,
         last_price_update: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (error) {
+      console.error("Failed to add card:", error);
       alert("Failed to add card");
       return;
     }

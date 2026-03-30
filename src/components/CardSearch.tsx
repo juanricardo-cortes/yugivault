@@ -6,7 +6,7 @@ import type { ExchangeRates } from "@/lib/currency";
 import PriceDisplay from "./PriceDisplay";
 
 interface CardSearchProps {
-  onAddCard?: (card: YuyuteiCard) => void;
+  onAddCard?: (card: YuyuteiCard, quantity: number) => void;
   rates: ExchangeRates | null;
 }
 
@@ -15,6 +15,7 @@ export default function CardSearch({ onAddCard, rates }: CardSearchProps) {
   const [results, setResults] = useState<YuyuteiCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,12 +130,27 @@ export default function CardSearch({ onAddCard, rates }: CardSearchProps) {
                     size="lg"
                   />
                   {onAddCard && (
-                    <button
-                      onClick={() => onAddCard(card)}
-                      className="rounded-lg bg-purple-600/80 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-500 active:scale-95 transition-all"
-                    >
-                      + Add
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={1}
+                        max={99}
+                        value={quantities[`${card.setNumber}-${card.rarity}-${i}`] || 1}
+                        onChange={(e) =>
+                          setQuantities((prev) => ({
+                            ...prev,
+                            [`${card.setNumber}-${card.rarity}-${i}`]: Math.max(1, Math.min(99, parseInt(e.target.value) || 1)),
+                          }))
+                        }
+                        className="w-12 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <button
+                        onClick={() => onAddCard(card, quantities[`${card.setNumber}-${card.rarity}-${i}`] || 1)}
+                        className="rounded-lg bg-purple-600/80 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-500 active:scale-95 transition-all"
+                      >
+                        + Add
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
