@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { searchCard } from "@/lib/yuyutei";
 
+// Deploy this function to Tokyo for best access to Yuyutei
+export const runtime = "nodejs";
+export const preferredRegion = "hnd1";
+
 export async function GET(request: NextRequest) {
   const setNumber = request.nextUrl.searchParams.get("q");
 
