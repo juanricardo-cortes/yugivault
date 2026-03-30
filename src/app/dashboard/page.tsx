@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import CardSearch from "@/components/CardSearch";
 import FolderList from "@/components/FolderList";
+import PriceDisplay from "@/components/PriceDisplay";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 import type { YuyuteiCard } from "@/lib/yuyutei";
 
 interface Card {
@@ -29,6 +31,7 @@ interface Folder {
 export default function Dashboard() {
   const supabase = createClient();
   const router = useRouter();
+  const rates = useExchangeRates();
   const [user, setUser] = useState<{ email?: string } | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -55,7 +58,6 @@ export default function Dashboard() {
       .order("created_at");
 
     if (folderData) {
-      // Get card counts and values per folder
       const foldersWithStats = await Promise.all(
         folderData.map(async (folder) => {
           const { data: cardFolders } = await supabase
@@ -144,7 +146,6 @@ export default function Dashboard() {
       return;
     }
 
-    // If a folder is selected or addToFolderId is set, add to that folder
     const targetFolder = addToFolderId || selectedFolder;
     if (targetFolder && data) {
       await supabase
@@ -196,7 +197,6 @@ export default function Dashboard() {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-white/10 px-4 sm:px-6 py-4">
         <div className="flex items-center gap-3">
-          {/* Mobile menu toggle */}
           <button
             onClick={() => setShowMobileNav(!showMobileNav)}
             className="sm:hidden text-slate-400 hover:text-white"
@@ -239,7 +239,6 @@ export default function Dashboard() {
             showMobileNav ? "fixed inset-0 z-50 bg-slate-950/95" : "hidden"
           } sm:block sm:relative sm:bg-transparent w-full sm:w-64 border-r border-white/10 p-4 overflow-y-auto flex-shrink-0`}
         >
-          {/* Mobile close */}
           <div className="flex justify-end sm:hidden mb-4">
             <button
               onClick={() => setShowMobileNav(false)}
@@ -269,6 +268,7 @@ export default function Dashboard() {
               setShowMobileNav(false);
             }}
             onFoldersChange={loadFolders}
+            rates={rates}
           />
         </aside>
 
@@ -283,12 +283,23 @@ export default function Dashboard() {
                   : "All Cards"}
               </h2>
               <p className="text-sm text-slate-400">
-                {cards.length} card{cards.length !== 1 && "s"} &middot; Total
-                value:{" "}
+                {cards.length} card{cards.length !== 1 && "s"} &middot; Total:
+              </p>
+              <div className="flex flex-wrap gap-3 mt-1">
                 <span className="font-semibold text-purple-300">
                   ¥{totalValue.toLocaleString()}
                 </span>
-              </p>
+                {rates && (
+                  <>
+                    <span className="font-semibold text-green-300">
+                      ${(totalValue * rates.USD).toFixed(2)}
+                    </span>
+                    <span className="font-semibold text-yellow-300">
+                      ₱{(totalValue * rates.PHP).toFixed(2)}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
             <button
               onClick={() => setShowSearch(!showSearch)}
@@ -322,7 +333,7 @@ export default function Dashboard() {
                   </select>
                 )}
               </div>
-              <CardSearch onAddCard={handleAddCard} />
+              <CardSearch onAddCard={handleAddCard} rates={rates} />
             </div>
           )}
 
@@ -368,14 +379,15 @@ export default function Dashboard() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-base font-bold text-white">
-                      ¥{(card.price || 0).toLocaleString()}
-                    </p>
                   </div>
+                  <PriceDisplay
+                    yen={card.price || 0}
+                    rates={rates}
+                    size="sm"
+                  />
 
                   {/* Actions */}
                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* Add to folder */}
                     <div className="relative">
                       <button
                         onClick={() =>
@@ -417,7 +429,6 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* Remove from folder */}
                     {selectedFolder && (
                       <button
                         onClick={() => handleRemoveFromFolder(card.id)}
@@ -440,7 +451,6 @@ export default function Dashboard() {
                       </button>
                     )}
 
-                    {/* Delete card */}
                     <button
                       onClick={() => handleDeleteCard(card.id)}
                       className="rounded-lg bg-white/10 p-1.5 text-slate-400 hover:text-red-400 hover:bg-white/20"

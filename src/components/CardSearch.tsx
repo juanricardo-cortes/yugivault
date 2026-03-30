@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import type { YuyuteiCard } from "@/lib/yuyutei";
+import type { ExchangeRates } from "@/lib/currency";
+import PriceDisplay from "./PriceDisplay";
 
 interface CardSearchProps {
   onAddCard?: (card: YuyuteiCard) => void;
+  rates: ExchangeRates | null;
 }
 
-export default function CardSearch({ onAddCard }: CardSearchProps) {
+export default function CardSearch({ onAddCard, rates }: CardSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<YuyuteiCard[]>([]);
   const [loading, setLoading] = useState(false);
@@ -119,16 +122,12 @@ export default function CardSearch({ onAddCard }: CardSearchProps) {
 
                 {/* Price & Action */}
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  <div className="text-right">
-                    {card.originalPrice && card.originalPrice !== card.price && (
-                      <p className="text-xs text-slate-500 line-through">
-                        ¥{card.originalPrice.toLocaleString()}
-                      </p>
-                    )}
-                    <p className="text-lg font-bold text-white">
-                      ¥{card.price.toLocaleString()}
-                    </p>
-                  </div>
+                  <PriceDisplay
+                    yen={card.price}
+                    rates={rates}
+                    originalYen={card.originalPrice}
+                    size="lg"
+                  />
                   {onAddCard && (
                     <button
                       onClick={() => onAddCard(card)}

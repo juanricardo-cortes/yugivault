@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { ExchangeRates } from "@/lib/currency";
 
 interface Folder {
   id: string;
@@ -16,6 +17,7 @@ interface FolderListProps {
   selectedFolderId: string | null;
   onSelectFolder: (folderId: string | null) => void;
   onFoldersChange: () => void;
+  rates: ExchangeRates | null;
 }
 
 export default function FolderList({
@@ -23,6 +25,7 @@ export default function FolderList({
   selectedFolderId,
   onSelectFolder,
   onFoldersChange,
+  rates,
 }: FolderListProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
@@ -109,10 +112,16 @@ export default function FolderList({
           <div className="min-w-0 flex-1">
             <p className="font-medium truncate">{folder.name}</p>
             {folder.total_value !== undefined && (
-              <p className="text-xs text-slate-500 mt-0.5">
-                {folder.card_count} cards &middot; ¥
-                {folder.total_value.toLocaleString()}
-              </p>
+              <div className="text-xs text-slate-500 mt-0.5">
+                <span>{folder.card_count} cards</span>
+                <span> &middot; ¥{folder.total_value.toLocaleString()}</span>
+                {rates && folder.total_value > 0 && (
+                  <span>
+                    {" "}/ ${(folder.total_value * rates.USD).toFixed(2)}
+                    {" "}/ ₱{(folder.total_value * rates.PHP).toFixed(2)}
+                  </span>
+                )}
+              </div>
             )}
           </div>
           <button
