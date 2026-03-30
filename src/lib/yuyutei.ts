@@ -74,11 +74,12 @@ function parseCards(html: string): YuyuteiCard[] {
     const origMatch = origPriceText.replace(/,/g, "").match(/(\d+)/);
     const originalPrice = origMatch ? parseInt(origMatch[1], 10) : undefined;
 
-    // Image URL
-    const imgSrc = $card.find("img").attr("src") || "";
+    // Card image (skip the star icon, get the actual card image)
+    const cardImg = $card.find("img.card");
+    const imgSrc = cardImg.attr("src") || "";
 
-    // Rarity from image alt or section
-    const imgAlt = $card.find("img").attr("alt") || "";
+    // Rarity from card image alt (e.g. "ROTD-JP001 PSE 魔道騎士ガイア")
+    const imgAlt = cardImg.attr("alt") || "";
     const altParts = imgAlt.split(" ");
     const rarity =
       altParts.length >= 2 ? altParts[1] : currentRarity || "Unknown";
