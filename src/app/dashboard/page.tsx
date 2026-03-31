@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import CardSearch from "@/components/CardSearch";
 import FolderList from "@/components/FolderList";
 import PriceDisplay from "@/components/PriceDisplay";
+import ProfileSetup from "@/components/ProfileSetup";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import type { YuyuteiCard } from "@/lib/yuyutei";
 
@@ -16,6 +17,7 @@ interface Card {
   rarity: string | null;
   price: number | null;
   image_url: string | null;
+  card_type: string | null;
   quantity: number;
   last_price_update: string | null;
 }
@@ -42,6 +44,9 @@ export default function Dashboard() {
   const [showFolderPicker, setShowFolderPicker] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshMsg, setLastRefreshMsg] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
 
   const refreshPrices = useCallback(async () => {
     setRefreshing(true);
@@ -69,6 +74,17 @@ export default function Dashboard() {
     }
   }, []);
 
+  const loadProfile = useCallback(async () => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", currentUser.id)
+      .single();
+    setProfileUsername(data?.username || null);
+  }, []);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
@@ -77,6 +93,7 @@ export default function Dashboard() {
       }
       setUser(user);
     });
+    loadProfile();
   }, []);
 
   const loadFolders = useCallback(async () => {
@@ -178,6 +195,16 @@ export default function Dashboard() {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) return;
 
+    // Fetch card type from YGOProDeck
+    let cardType: string | null = null;
+    try {
+      const typeRes = await fetch(`/api/cards/type?q=${encodeURIComponent(card.setNumber)}`);
+      if (typeRes.ok) {
+        const typeData = await typeRes.json();
+        cardType = typeData.cardType;
+      }
+    } catch { /* card type is optional */ }
+
     const { data, error } = await supabase
       .from("cards")
       .insert({
@@ -187,6 +214,7 @@ export default function Dashboard() {
         rarity: card.rarity,
         price: card.price,
         image_url: card.imageUrl,
+        card_type: cardType,
         quantity,
         last_price_update: new Date().toISOString(),
       })
@@ -240,7 +268,31 @@ export default function Dashboard() {
     router.push("/login");
   };
 
-  const totalValue = cards.reduce(
+  // Card type categories for filtering
+  const getTypeCategory = (cardType: string | null): string => {
+    if (!cardType) return "Unknown";
+    if (cardType.includes("Spell")) return "Spell";
+    if (cardType.includes("Trap")) return "Trap";
+    if (cardType.includes("Link")) return "Link";
+    if (cardType.includes("XYZ")) return "Xyz";
+    if (cardType.includes("Synchro")) return "Synchro";
+    if (cardType.includes("Fusion")) return "Fusion";
+    if (cardType.includes("Ritual")) return "Ritual";
+    if (cardType.includes("Pendulum")) return "Pendulum";
+    if (cardType.includes("Monster")) return "Monster";
+    return "Unknown";
+  };
+
+  const typeCategories = Array.from(
+    new Set(cards.map((c) => getTypeCategory(c.card_type)))
+  ).sort();
+
+  const filteredCards =
+    typeFilter === "all"
+      ? cards
+      : cards.filter((c) => getTypeCategory(c.card_type) === typeFilter);
+
+  const totalValue = filteredCards.reduce(
     (sum, c) => sum + (c.price || 0) * c.quantity,
     0
   );
@@ -273,6 +325,18 @@ export default function Dashboard() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          <a
+            href="/browse"
+            className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+          >
+            Browse
+          </a>
+          <button
+            onClick={() => setShowProfile(true)}
+            className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+          >
+            {profileUsername ? `@${profileUsername}` : "Set Up Profile"}
+          </button>
           <span className="hidden sm:inline text-sm text-slate-400">
             {user?.email}
           </span>
@@ -336,7 +400,8 @@ export default function Dashboard() {
                   : "All Cards"}
               </h2>
               <p className="text-sm text-slate-400">
-                {cards.length} card{cards.length !== 1 && "s"} &middot; Total:
+                {filteredCards.length} card{filteredCards.length !== 1 && "s"}
+                {typeFilter !== "all" && ` (${typeFilter})`} &middot; Total:
               </p>
               <div className="flex flex-wrap gap-3 mt-1">
                 <span className="font-semibold text-purple-300">
@@ -354,7 +419,21 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              {typeCategories.length > 1 && (
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Types</option>
+                  {typeCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              )}
               <button
                 onClick={refreshPrices}
                 disabled={refreshing}
@@ -421,17 +500,21 @@ export default function Dashboard() {
           )}
 
           {/* Card Grid */}
-          {cards.length === 0 ? (
+          {filteredCards.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="text-4xl mb-4">&#127183;</div>
-              <p className="text-slate-400">No cards yet</p>
+              <p className="text-slate-400">
+                {cards.length === 0 ? "No cards yet" : "No cards match this filter"}
+              </p>
               <p className="text-sm text-slate-500 mt-1">
-                Search for cards to add them to your collection
+                {cards.length === 0
+                  ? "Search for cards to add them to your collection"
+                  : "Try selecting a different type"}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {cards.map((card) => (
+              {filteredCards.map((card) => (
                 <div
                   key={card.id}
                   className="group relative flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 p-3 hover:bg-white/10 transition-colors"
@@ -454,6 +537,11 @@ export default function Dashboard() {
                       {card.rarity && (
                         <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-300">
                           {card.rarity}
+                        </span>
+                      )}
+                      {card.card_type && (
+                        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-medium text-blue-300">
+                          {getTypeCategory(card.card_type)}
                         </span>
                       )}
                       {card.quantity > 1 && (
@@ -560,6 +648,17 @@ export default function Dashboard() {
           )}
         </main>
       </div>
+
+      {/* Profile Modal */}
+      {showProfile && (
+        <ProfileSetup
+          onClose={() => setShowProfile(false)}
+          onSaved={() => {
+            setShowProfile(false);
+            loadProfile();
+          }}
+        />
+      )}
     </div>
   );
 }

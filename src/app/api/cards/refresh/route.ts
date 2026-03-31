@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { searchCard } from "@/lib/yuyutei";
+import { fetchCardType } from "@/lib/ygoprodeck";
 
 export const runtime = "nodejs";
 export const preferredRegion = "hnd1";
@@ -29,10 +30,10 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get all unique set_number + rarity combos for this user's cards
+  // Get all cards for this user
   const { data: cards, error } = await supabase
     .from("cards")
-    .select("id, set_number, rarity")
+    .select("id, set_number, rarity, card_type")
     .eq("user_id", user.id);
 
   if (error || !cards || cards.length === 0) {
@@ -51,18 +52,29 @@ export async function POST(request: NextRequest) {
       // Update each card that matches
       const matchingCards = cards.filter((c) => c.set_number === setNumber);
 
+      // Fetch card type once per set number if any card is missing it
+      let cardType: string | null = null;
+      if (matchingCards.some((c) => !c.card_type)) {
+        cardType = await fetchCardType(setNumber);
+      }
+
       for (const card of matchingCards) {
         // Find the matching rarity result
         const match = results.find((r) => r.rarity === card.rarity);
         if (match) {
+          const updateData: Record<string, unknown> = {
+            price: match.price,
+            image_url: match.imageUrl,
+            last_price_update: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          // Backfill card_type if missing
+          if (!card.card_type && cardType) {
+            updateData.card_type = cardType;
+          }
           await supabase
             .from("cards")
-            .update({
-              price: match.price,
-              image_url: match.imageUrl,
-              last_price_update: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
+            .update(updateData)
             .eq("id", card.id);
           updated++;
         }
