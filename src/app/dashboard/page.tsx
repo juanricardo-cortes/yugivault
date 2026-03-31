@@ -238,7 +238,7 @@ export default function Dashboard() {
     // Fetch card type from YGOProDeck
     let cardType: string | null = null;
     try {
-      const typeRes = await fetch(`/api/cards/type?q=${encodeURIComponent(card.setNumber)}`);
+      const typeRes = await fetch(`/api/cards/type?q=${encodeURIComponent(card.setNumber)}&name=${encodeURIComponent(card.cardName)}`);
       if (typeRes.ok) {
         const typeData = await typeRes.json();
         cardType = typeData.cardType;

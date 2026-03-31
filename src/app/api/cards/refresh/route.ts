@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   // Get all cards for this user
   const { data: cards, error } = await supabase
     .from("cards")
-    .select("id, set_number, rarity, card_type")
+    .select("id, set_number, card_name, rarity, card_type")
     .eq("user_id", user.id);
 
   if (error || !cards || cards.length === 0) {
@@ -57,7 +57,9 @@ export async function POST(request: NextRequest) {
 
       let cardType: string | null = null;
       if (matchingCards.some((c) => !c.card_type)) {
-        cardType = await fetchCardType(setNumber);
+        // Pass the first card's name for Yugipedia Japanese→English lookup fallback
+        const cardName = matchingCards[0]?.card_name;
+        cardType = await fetchCardType(setNumber, cardName);
       }
 
       for (const card of matchingCards) {

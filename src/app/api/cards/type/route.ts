@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const cardType = await fetchCardType(setNumber.trim().toUpperCase());
+  const cardName = request.nextUrl.searchParams.get("name") || undefined;
+  const cardType = await fetchCardType(setNumber.trim().toUpperCase(), cardName);
 
   return Response.json({ cardType });
 }
