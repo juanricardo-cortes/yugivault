@@ -384,6 +384,14 @@ export default function Dashboard() {
         </div>
         {/* Desktop nav */}
         <div className="hidden sm:flex items-center gap-3">
+          {user?.email === "cortes.ricardo1@gmail.com" && (
+            <a
+              href="/admin"
+              className="rounded-lg border border-purple-500/30 bg-purple-600/10 px-3 py-1.5 text-sm text-purple-300 hover:bg-purple-600/20 transition-colors"
+            >
+              Admin
+            </a>
+          )}
           <a
             href="/browse"
             className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:border-white/20 transition-colors"
@@ -419,6 +427,11 @@ export default function Dashboard() {
           </button>
           {showHeaderMenu && (
             <div className="absolute right-0 top-10 z-50 w-48 rounded-xl bg-slate-800 border border-white/10 py-1 shadow-xl">
+              {user?.email === "cortes.ricardo1@gmail.com" && (
+                <a href="/admin" className="block w-full text-left px-4 py-2.5 text-sm text-purple-300 hover:bg-white/10">
+                  Admin
+                </a>
+              )}
               <a href="/browse" className="block w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10">
                 Browse
               </a>

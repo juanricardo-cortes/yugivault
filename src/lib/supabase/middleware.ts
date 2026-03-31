@@ -41,5 +41,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Admin route protection
+  if (request.nextUrl.pathname.startsWith("/admin") && user?.email !== "cortes.ricardo1@gmail.com") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
   return supabaseResponse;
 }
