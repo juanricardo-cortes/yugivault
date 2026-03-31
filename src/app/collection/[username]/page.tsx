@@ -290,6 +290,9 @@ export default function CollectionPage({
                   {folder.total_value
                     ? ` · ¥${folder.total_value.toLocaleString()}`
                     : ""}
+                  {folder.total_value && rates && (
+                    <> · ${(folder.total_value * rates.USD).toFixed(2)} · ₱{(folder.total_value * rates.PHP).toFixed(2)}</>
+                  )}
                 </span>
               </button>
             ))}
