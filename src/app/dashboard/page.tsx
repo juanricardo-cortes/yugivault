@@ -8,6 +8,7 @@ import FolderList from "@/components/FolderList";
 import PriceDisplay from "@/components/PriceDisplay";
 import ProfileSetup from "@/components/ProfileSetup";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
+import { useSubscription } from "@/hooks/useSubscription";
 import type { YuyuteiCard } from "@/lib/yuyutei";
 
 interface Card {
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const supabase = createClient();
   const router = useRouter();
   const rates = useExchangeRates();
+  const { active: isPremium, isTrial, trialDaysLeft } = useSubscription();
   const [user, setUser] = useState<{ email?: string } | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -47,6 +49,7 @@ export default function Dashboard() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showProfile, setShowProfile] = useState(false);
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const refreshPrices = useCallback(async () => {
     setRefreshing(true);
@@ -94,6 +97,12 @@ export default function Dashboard() {
       setUser(user);
     });
     loadProfile();
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "success") {
+      setPaymentSuccess(true);
+      window.history.replaceState({}, "", "/dashboard");
+    }
   }, []);
 
   const loadFolders = useCallback(async () => {
@@ -358,6 +367,55 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Loading subscription check */}
+      {isPremium === null && (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+        </div>
+      )}
+
+      {/* Premium Gate */}
+      {isPremium === false && (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="text-5xl mb-4">&#128274;</div>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Premium Required
+          </h2>
+          <p className="text-slate-400 mb-6 max-w-md">
+            Subscribe to YugiVault Premium to manage your collection, search cards, track prices, and more.
+          </p>
+          <div className="flex gap-3">
+            <a
+              href="/pricing"
+              className="rounded-xl bg-purple-600 px-6 py-3 text-sm font-semibold text-white hover:bg-purple-500 active:scale-[0.98] transition-all"
+            >
+              View Plans
+            </a>
+            <a
+              href="/browse"
+              className="rounded-xl border border-white/10 px-6 py-3 text-sm font-semibold text-slate-300 hover:text-white hover:border-white/20 transition-all"
+            >
+              Browse Collections
+            </a>
+          </div>
+        </div>
+      )}
+
+      {isPremium && <>
+      {isTrial && (
+        <div className="mx-4 sm:mx-6 mt-4 rounded-xl bg-purple-500/10 border border-purple-500/20 px-4 py-3 text-sm text-purple-300 flex items-center justify-between">
+          <span>Free trial: {trialDaysLeft} day{trialDaysLeft !== 1 && "s"} remaining</span>
+          <a href="/pricing" className="rounded-lg bg-purple-600 px-3 py-1 text-xs font-semibold text-white hover:bg-purple-500 transition-colors">
+            Subscribe
+          </a>
+        </div>
+      )}
+      {paymentSuccess && (
+        <div className="mx-4 sm:mx-6 mt-4 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-400 flex items-center justify-between">
+          <span>Payment successful! Welcome to YugiVault Premium.</span>
+          <button onClick={() => setPaymentSuccess(false)} className="text-green-400 hover:text-green-300">&times;</button>
+        </div>
+      )}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Folders */}
         <aside
@@ -656,7 +714,7 @@ export default function Dashboard() {
             </div>
           )}
         </main>
-      </div>
+      </div></>}
 
       {/* Profile Modal */}
       {showProfile && (

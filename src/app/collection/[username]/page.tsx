@@ -61,8 +61,12 @@ export default function CollectionPage({
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+    });
     loadProfile();
   }, [username]);
 
@@ -220,10 +224,10 @@ export default function CollectionPage({
             Browse
           </a>
           <a
-            href="/dashboard"
+            href={isLoggedIn ? "/dashboard" : "/login"}
             className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:border-white/20 transition-colors"
           >
-            My Collection
+            {isLoggedIn ? "My Collection" : "Sign In"}
           </a>
         </div>
       </header>

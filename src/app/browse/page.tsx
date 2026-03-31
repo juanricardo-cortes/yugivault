@@ -16,8 +16,12 @@ export default function BrowsePage() {
   const [query, setQuery] = useState("");
   const [profiles, setProfiles] = useState<ProfileResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+    });
     loadAllProfiles();
   }, []);
 
@@ -58,10 +62,10 @@ export default function BrowsePage() {
           Yugi<span className="text-purple-400">Vault</span>
         </a>
         <a
-          href="/dashboard"
+          href={isLoggedIn ? "/dashboard" : "/login"}
           className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:border-white/20 transition-colors"
         >
-          My Collection
+          {isLoggedIn ? "My Collection" : "Sign In"}
         </a>
       </header>
 
