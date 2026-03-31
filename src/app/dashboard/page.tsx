@@ -278,6 +278,24 @@ export default function Dashboard() {
     loadFolders();
   };
 
+  const [showTypePicker, setShowTypePicker] = useState<string | null>(null);
+
+  const cardTypeOptions = [
+    "Normal Monster", "Effect Monster", "Ritual Monster",
+    "Fusion Monster", "Synchro Monster", "XYZ Monster",
+    "Pendulum Effect Monster", "Link Monster",
+    "Spell Card", "Trap Card",
+  ];
+
+  const handleSetCardType = async (cardId: string, cardType: string) => {
+    await supabase
+      .from("cards")
+      .update({ card_type: cardType, updated_at: new Date().toISOString() })
+      .eq("id", cardId);
+    setShowTypePicker(null);
+    loadCards();
+  };
+
   const handleDeleteCard = async (cardId: string) => {
     await supabase.from("cards").delete().eq("id", cardId);
     loadCards();
@@ -661,11 +679,34 @@ export default function Dashboard() {
                           {card.rarity}
                         </span>
                       )}
-                      {card.card_type && (
-                        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-medium text-blue-300">
-                          {getTypeCategory(card.card_type)}
-                        </span>
-                      )}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowTypePicker(showTypePicker === card.id ? null : card.id)}
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer transition-colors ${
+                            card.card_type
+                              ? "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30"
+                              : "bg-slate-500/20 text-slate-400 hover:bg-slate-500/30"
+                          }`}
+                        >
+                          {card.card_type ? getTypeCategory(card.card_type) : "Set Type"}
+                        </button>
+                        {showTypePicker === card.id && (
+                          <div className="absolute left-0 top-7 z-10 w-48 rounded-xl bg-slate-800 border border-white/10 py-1 shadow-xl">
+                            {cardTypeOptions.map((type) => (
+                              <button
+                                key={type}
+                                onClick={() => handleSetCardType(card.id, type)}
+                                className={`w-full text-left px-4 py-2 text-sm hover:bg-white/10 ${
+                                  card.card_type === type ? "text-purple-300" : "text-slate-300"
+                                }`}
+                              >
+                                {getTypeCategory(type)}
+                                {card.card_type === type && " ✓"}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       {card.quantity > 1 && (
                         <span className="text-xs text-slate-500">
                           x{card.quantity}
