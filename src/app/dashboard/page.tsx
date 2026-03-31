@@ -50,6 +50,7 @@ export default function Dashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
   const refreshPrices = useCallback(async () => {
     setRefreshing(true);
@@ -342,7 +343,8 @@ export default function Dashboard() {
             Yugi<span className="text-purple-400">Vault</span>
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        {/* Desktop nav */}
+        <div className="hidden sm:flex items-center gap-3">
           <a
             href="/browse"
             className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-slate-400 hover:text-white hover:border-white/20 transition-colors"
@@ -355,7 +357,7 @@ export default function Dashboard() {
           >
             {profileUsername ? `@${profileUsername}` : "Set Up Profile"}
           </button>
-          <span className="hidden sm:inline text-sm text-slate-400">
+          <span className="text-sm text-slate-400">
             {user?.email}
           </span>
           <button
@@ -364,6 +366,38 @@ export default function Dashboard() {
           >
             Sign Out
           </button>
+        </div>
+
+        {/* Mobile menu */}
+        <div className="relative sm:hidden">
+          <button
+            onClick={() => setShowHeaderMenu(!showHeaderMenu)}
+            className="text-slate-400 hover:text-white"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          </button>
+          {showHeaderMenu && (
+            <div className="absolute right-0 top-10 z-50 w-48 rounded-xl bg-slate-800 border border-white/10 py-1 shadow-xl">
+              <a href="/browse" className="block w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10">
+                Browse
+              </a>
+              <button
+                onClick={() => { setShowProfile(true); setShowHeaderMenu(false); }}
+                className="block w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10"
+              >
+                {profileUsername ? `@${profileUsername}` : "Set Up Profile"}
+              </button>
+              <div className="border-t border-white/10 my-1" />
+              <button
+                onClick={handleLogout}
+                className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/10"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

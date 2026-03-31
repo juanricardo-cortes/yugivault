@@ -50,7 +50,7 @@ export function useSubscription() {
 
       // Check 3-day trial based on account creation
       const createdAt = new Date(session.user.created_at);
-      const trialEnd = new Date(createdAt.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const trialEnd = new Date(createdAt.getTime() + 21 * 24 * 60 * 60 * 1000);
       const now = new Date();
 
       if (now < trialEnd) {
