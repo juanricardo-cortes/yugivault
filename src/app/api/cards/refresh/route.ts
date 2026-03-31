@@ -14,8 +14,6 @@ export async function POST(request: NextRequest) {
   }
 
   const token = authHeader.split(" ")[1];
-
-  // Create a client with the user's token to verify auth
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,6 +28,11 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Accept optional batch parameters
+  const body = await request.json().catch(() => ({}));
+  const batchSize = 5;
+  const offset = (body.offset as number) || 0;
+
   // Get all cards for this user
   const { data: cards, error } = await supabase
     .from("cards")
@@ -37,29 +40,27 @@ export async function POST(request: NextRequest) {
     .eq("user_id", user.id);
 
   if (error || !cards || cards.length === 0) {
-    return Response.json({ updated: 0 });
+    return Response.json({ updated: 0, done: true, total: 0 });
   }
 
   // Group by set_number to minimize scraping requests
-  const setNumbers = [...new Set(cards.map((c) => c.set_number))];
+  const allSetNumbers = [...new Set(cards.map((c) => c.set_number))];
+  const batch = allSetNumbers.slice(offset, offset + batchSize);
+  const done = offset + batchSize >= allSetNumbers.length;
 
   let updated = 0;
 
-  for (const setNumber of setNumbers) {
+  for (const setNumber of batch) {
     try {
       const results = await searchCard(setNumber);
-
-      // Update each card that matches
       const matchingCards = cards.filter((c) => c.set_number === setNumber);
 
-      // Fetch card type once per set number if any card is missing it
       let cardType: string | null = null;
       if (matchingCards.some((c) => !c.card_type)) {
         cardType = await fetchCardType(setNumber);
       }
 
       for (const card of matchingCards) {
-        // Find the matching rarity result
         const match = results.find((r) => r.rarity === card.rarity);
         if (match) {
           const updateData: Record<string, unknown> = {
@@ -68,20 +69,16 @@ export async function POST(request: NextRequest) {
             last_price_update: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
-          // Backfill card_type if missing
           if (!card.card_type && cardType) {
             updateData.card_type = cardType;
           }
-          await supabase
-            .from("cards")
-            .update(updateData)
-            .eq("id", card.id);
+          await supabase.from("cards").update(updateData).eq("id", card.id);
           updated++;
         }
       }
 
-      // Rate limit: wait 500ms between requests to Yuyutei
-      if (setNumbers.indexOf(setNumber) < setNumbers.length - 1) {
+      // Rate limit between requests
+      if (batch.indexOf(setNumber) < batch.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (err) {
@@ -89,5 +86,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return Response.json({ updated });
+  return Response.json({
+    updated,
+    done,
+    nextOffset: offset + batchSize,
+    total: allSetNumbers.length,
+    processed: Math.min(offset + batchSize, allSetNumbers.length),
+  });
 }

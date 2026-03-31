@@ -61,16 +61,37 @@ export default function Dashboard() {
       } = await supabase.auth.getSession();
       if (!session) return;
 
-      const res = await fetch("/api/cards/refresh", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setLastRefreshMsg(`Updated ${data.updated} card${data.updated !== 1 ? "s" : ""}`);
-        loadCards();
-        loadFolders();
+      let offset = 0;
+      let totalUpdated = 0;
+      let done = false;
+
+      while (!done) {
+        const res = await fetch("/api/cards/refresh", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ offset }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) break;
+
+        totalUpdated += data.updated;
+        done = data.done;
+        offset = data.nextOffset;
+
+        setLastRefreshMsg(
+          `Refreshing... ${data.processed}/${data.total} sets`
+        );
       }
+
+      setLastRefreshMsg(
+        `Updated ${totalUpdated} card${totalUpdated !== 1 ? "s" : ""}`
+      );
+      loadCards();
+      loadFolders();
     } catch {
       setLastRefreshMsg("Refresh failed");
     } finally {
