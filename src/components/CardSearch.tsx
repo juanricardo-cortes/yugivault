@@ -37,7 +37,7 @@ export default function CardSearch({ onAddCard, rates }: CardSearchProps) {
       }
 
       if (data.cards.length === 0) {
-        setError("No cards found for that set number");
+        setError("No cards found. Try a set number (ROTD-JP001) or set code (ROTD)");
         return;
       }
 
@@ -69,7 +69,7 @@ export default function CardSearch({ onAddCard, rates }: CardSearchProps) {
       }
 
       if (data.cards.length === 0) {
-        setError("No cards found for that set number");
+        setError("No cards found. Try a set number (ROTD-JP001) or set code (ROTD)");
         return;
       }
 
@@ -132,7 +132,7 @@ export default function CardSearch({ onAddCard, rates }: CardSearchProps) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Enter set number (e.g. ROTD-JP001)"
+          placeholder="Set number or set code (e.g. ROTD-JP001 or ROTD)"
           className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         />
         <button
