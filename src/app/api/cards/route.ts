@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Validate format: full card number (ROTD-JP001) or set prefix (ROTD, ROTD-JP)
-  const pattern = /^[A-Z0-9]+(-[A-Z]{2}(\d{3})?)?$/i;
+  // Validate format: full card number (ROTD-JP001, TT02-JPB21) or set prefix (ROTD)
+  const pattern = /^[A-Z0-9]+(-[A-Z]{1,4}[A-Z0-9]*)?$/i;
   if (!pattern.test(setNumber.trim())) {
     return Response.json(
       { error: "Invalid format. Examples: ROTD-JP001 (single card) or ROTD (entire set)" },
