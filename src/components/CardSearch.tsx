@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { YuyuteiCard } from "@/lib/yuyutei";
 import type { ExchangeRates } from "@/lib/currency";
 import PriceDisplay from "./PriceDisplay";
-import CardScanner from "./CardScanner";
 
 interface CardSearchProps {
   onAddCard?: (card: YuyuteiCard, quantity: number) => void;
@@ -17,37 +16,6 @@ export default function CardSearch({ onAddCard, rates }: CardSearchProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [showScanner, setShowScanner] = useState(false);
-
-  const searchBySetNumber = async (setNumber: string) => {
-    setQuery(setNumber);
-    setLoading(true);
-    setError("");
-    setResults([]);
-
-    try {
-      const res = await fetch(
-        `/api/cards?q=${encodeURIComponent(setNumber)}`
-      );
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Search failed");
-        return;
-      }
-
-      if (data.cards.length === 0) {
-        setError("No cards found. Try a set number (ROTD-JP001) or set code (ROTD)");
-        return;
-      }
-
-      setResults(data.cards);
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,49 +51,6 @@ export default function CardSearch({ onAddCard, rates }: CardSearchProps) {
 
   return (
     <div className="space-y-4">
-      {/* Scanner Toggle */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setShowScanner(!showScanner)}
-          className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-            showScanner
-              ? "border-purple-500/30 bg-purple-600/20 text-purple-300"
-              : "border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20"
-          }`}
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-          {showScanner ? "Hide Scanner" : "Scan Card"}
-        </button>
-      </div>
-
-      {/* Card Scanner */}
-      {showScanner && (
-        <CardScanner
-          onSetNumberFound={(setNumber) => {
-            setShowScanner(false);
-            searchBySetNumber(setNumber);
-          }}
-        />
-      )}
-
       {/* Search Form */}
       <form onSubmit={handleSearch} className="flex gap-2">
         <input
