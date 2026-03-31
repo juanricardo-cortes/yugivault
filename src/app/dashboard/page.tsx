@@ -97,9 +97,13 @@ export default function Dashboard() {
   }, []);
 
   const loadFolders = useCallback(async () => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
+
     const { data: folderData } = await supabase
       .from("folders")
       .select("*")
+      .eq("user_id", currentUser.id)
       .order("created_at");
 
     if (folderData) {
@@ -138,6 +142,9 @@ export default function Dashboard() {
   }, []);
 
   const loadCards = useCallback(async () => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
+
     if (selectedFolder) {
       const { data: cardFolders } = await supabase
         .from("card_folders")
@@ -150,6 +157,7 @@ export default function Dashboard() {
           .from("cards")
           .select("*")
           .in("id", cardIds)
+          .eq("user_id", currentUser.id)
           .order("created_at", { ascending: false });
         setCards(data || []);
       } else {
@@ -159,6 +167,7 @@ export default function Dashboard() {
       const { data } = await supabase
         .from("cards")
         .select("*")
+        .eq("user_id", currentUser.id)
         .order("created_at", { ascending: false });
       setCards(data || []);
     }
